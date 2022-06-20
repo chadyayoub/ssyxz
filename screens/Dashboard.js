@@ -2,52 +2,59 @@ import {
   View,
   FlatList,
   ActivityIndicator,
-  Text,
-  Button,
   Alert,
+  Appearance,
 } from 'react-native';
-import React, {useEffect, useReducer, useRef} from 'react';
-import Article from '../components/Article';
+import React, {useEffect, useState} from 'react';
+
 import {useDispatch, useSelector} from 'react-redux';
 import * as dashboardActions from '../store/actions/articles';
-import Colors from '../constants/Colors';
-import {useState} from 'react';
-import InputField from '../components/InputField';
-import CustomButton from '../components/CustomButton';
+
+import {Colors, setDarkMode, setLightMode} from '../constants/Colors';
+
+import Article from '../components/Article';
+import Header from '../components/Header';
 
 const Dashboard = props => {
-  const data = useSelector(state => state.articles.articles);
-  const filteredData = useSelector(state => state.articles.filteredArticles);
+  //Selectors from the redux store
+  const allData = useSelector(state => state.articles.articles);
+  const data = useSelector(state => state.articles.filteredArticles);
   const currentPage = useSelector(state => state.articles.currentPage);
-  const getToken = useSelector(state => state.auth.token);
+  const token = useSelector(state => state.auth.token);
+  //States to handle proper UI when the app is loading
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isReloadingData, setIsReloadingData] = useState(true);
   const [loadedAllData, setLoadedAllData] = useState(false);
-  const [isFiltered, setIsFiltered] = useState(false);
-  const [searchInput, setSearchInput] = useState('');
-  const [toggleSearchBar, setToggleSearchBar] = useState(false);
-  const dispatch = useDispatch();
-  const [token, setToken] = useState(getToken);
+  //To change and show the error to user or handle it whenever there is one
   const [error, setError] = useState('');
+  //To change the search value and filter out articles based on title while typing
+  const [searchValue, setSearchValue] = useState('');
+
+  const dispatch = useDispatch();
+
+  //Whenever searchValue changes search for articles matching user input
   useEffect(() => {
-    if (error != '') Alert.alert('an error occured', error, [{text: 'okay'}]);
+    dispatch(dashboardActions.searchForArticles(searchValue, allData));
+  }, [searchValue]);
+
+  //If there is an error show it to the user
+  useEffect(() => {
+    if (error != '') Alert.alert('An error occured', error, [{text: 'okay'}]);
   }, [error]);
 
+  //To load articles whenever this component renders for the first time
   useEffect(() => {
     reloadArticles();
   }, []);
 
-  useEffect(() => {
-    setToggleSearchBar(props.route.params.SearchClicked);
-  }, [props.route.params]);
-
+  //To load more articles
   const loadNewArticles = async () => {
     if (!isLoadingData && !loadedAllData) {
       setIsLoadingData(true);
       setError('');
       try {
         await dispatch(
-          dashboardActions.loadMoreArticles(token, currentPage),
+          dashboardActions.loadMoreArticles(token, currentPage, searchValue),
         ).then(() => {
           setIsLoadingData(false);
         });
@@ -57,9 +64,10 @@ const Dashboard = props => {
       }
     }
   };
+
+  //To reload all articles
   const reloadArticles = async () => {
     setIsReloadingData(true);
-    handleCloseSearch();
     setIsLoadingData(false);
     setLoadedAllData(false);
     setError('');
@@ -72,71 +80,68 @@ const Dashboard = props => {
     }
   };
 
-  const loadMore = () => {
-    if (!loadedAllData) {
-      loadNewArticles();
-      filterArticles();
-    } else throw new Error('No more data to load');
-  };
-  const handleSearchInput = input => {
-    setSearchInput(input);
+  //To load more articles when the user scrolls to the end
+  const handleEndReached = () => {
+    loadNewArticles();
   };
 
-  const filterArticles = () => {
-    dispatch(dashboardActions.searchForArticles(searchInput, data));
-    setIsFiltered(true);
+  //To change the internal search value from user input
+  const handleSearch = enteredText => {
+    setSearchValue(enteredText);
   };
+
+  //To empty search field and unfilter articles when user closes the searchbar
   const handleCloseSearch = () => {
-    setToggleSearchBar(false);
-    setIsFiltered(false);
+    setSearchValue('');
   };
-  const handleEndReached = () => {
-    if (!isFiltered) loadNewArticles();
+
+  //To log out
+  const handleLogout = () => {
+    Alert.alert('Confirmation', 'Are you sure you want to logout?', [
+      {
+        text: 'Yes',
+        onPress: logout,
+      },
+      {
+        text: 'No',
+        onPress: () => props.navigation.pop(),
+        style: 'cancel',
+      },
+    ]);
   };
+
+  //The next 10 lines are to change the theme of the app whenever the device theme changes
+  const [theme, updateTheme] = useState();
+
+  const changeTheme = () => {
+    const mode = Appearance.getColorScheme();
+    if (mode === null) setLightMode();
+    else if (mode === 'dark') setDarkMode();
+    else setLightMode();
+    updateTheme(mode);
+  };
+
+  useEffect(changeTheme, []);
+
+  Appearance.addChangeListener(changeTheme);
 
   return (
-    <View style={{flex: 1}}>
+    <View style={{flex: 1, backgroundColor: '#ddd'}}>
+      <Header
+        onSearch={handleSearch}
+        value={searchValue}
+        onCloseSearch={handleCloseSearch}
+        onLogout={handleLogout}
+      />
       {isReloadingData ? (
         <View
           style={{flex: 1, justifyContent: 'center', alignContent: 'center'}}>
           <ActivityIndicator size={60} color={Colors.main} />
         </View>
       ) : (
-        <View style={{flex: 1}}>
-          {toggleSearchBar ? (
-            <View
-              style={{
-                flexDirection: 'row',
-                justifyContent: 'center',
-                marginVertical: 5,
-                alignItems: 'center',
-              }}>
-              <InputField
-                hint="Seach for articles..."
-                onDone={filterArticles}
-                value={searchInput}
-                onChangeText={handleSearchInput}
-              />
-              {isFiltered ? (
-                <CustomButton
-                  title="load more"
-                  onPress={loadMore}
-                  style={{width: 120}}
-                />
-              ) : null}
-              <CustomButton
-                style={{
-                  marginLeft: 3,
-                  width: 40,
-                  height: 40,
-                }}
-                onPress={handleCloseSearch}
-                title="X"
-              />
-            </View>
-          ) : null}
+        <View style={{flex: 1, zIndex: -1}}>
           <FlatList
-            data={isFiltered ? filteredData : data}
+            data={data}
             renderItem={itemData => (
               <Article
                 title={itemData.item.title}
@@ -151,7 +156,11 @@ const Dashboard = props => {
         </View>
       )}
       {isLoadingData && !loadedAllData ? (
-        <ActivityIndicator size={60} color={Colors.main} />
+        <ActivityIndicator
+          style={{position: 'absolute', bottom: 0, alignSelf: 'center'}}
+          size={60}
+          color={Colors.main}
+        />
       ) : null}
     </View>
   );

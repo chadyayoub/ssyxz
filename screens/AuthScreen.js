@@ -6,75 +6,121 @@ import {
   Image,
   ActivityIndicator,
   Alert,
+  Appearance,
 } from 'react-native';
 import React, {useState, useEffect} from 'react';
+
 import Card from '../components/Card';
 import InputField from '../components/InputField';
+import CustomButton from '../components/CustomButton';
 
 import Images from '../assets/images/Images';
-import CustomButton from '../components/CustomButton';
-import Colors from '../constants/Colors';
+import {Colors, setDarkMode, setLightMode} from '../constants/Colors';
+
 import {useDispatch, useSelector} from 'react-redux';
 
 import * as authActions from '../store/actions/auth';
 
 const AuthScreen = props => {
   const dispatch = useDispatch();
+
+  //username and passworf text fields
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+
+  //this value is to know when the activity indicator should display
   const [isFetchingData, setIsFetchingData] = useState(false);
 
-  const [usernameEmpty, setusernameEmpty] = useState('true');
-  const [passwordEmpty, setPasswordEmtpy] = useState('true');
+  //this is the error value to display for the user
+  const [error, setError] = useState('');
 
+  //booleans to check if username and password are empty
+  const [usernameEmpty, setusernameEmpty] = useState(false);
+  const [usernameValid, setusernameValid] = useState(false);
+  const [passwordEmpty, setPasswordEmtpy] = useState(false);
+  const [passwordValid, setPasswordValid] = useState(false);
+
+  //get the token
   const token = useSelector(state => state.auth.token);
 
+  //handle the username and change username empty accordingly
   const handleUsername = enteredText => {
     setUsername(enteredText);
     if (enteredText == '' || enteredText == null) {
       setusernameEmpty(true);
+      setusernameValid(false);
     } else {
       setusernameEmpty(false);
+      setusernameValid(true);
     }
   };
+
+  //handle password and change password empty accordingly
   const handlePassword = enteredText => {
     setPassword(enteredText);
     if (enteredText == '' || enteredText == null) {
       setPasswordEmtpy(true);
+      setPasswordValid(false);
     } else {
       setPasswordEmtpy(false);
+      setPasswordValid(true);
     }
   };
-  useEffect(() => {
-    setusernameEmpty(false);
-    setPasswordEmtpy(false);
-  }, [props.navigation]);
+
+  //when there is an error display the error message to the user
   useEffect(() => {
     if (error != '') {
-      Alert.alert('an error occured', error, [{text: 'okay'}]);
-      setUsername('');
-      setPassword('');
+      Alert.alert('An error occured', error, [{text: 'Ok'}]);
     }
   }, [error]);
+
+  //handle the login
   const loginHandler = async () => {
+    //If username not empty or null and password then try to login with entered credentials
     if (
       (username != '' || username != null) &&
       (password != '' || password != null)
     ) {
+      //Is fetching data to show the loading indicator
       setIsFetchingData('true');
       setError('');
+      //Try to login with input credentials
+      //If it succeeds then the login action will save the token
+      //and then navigate to the dashboard screen
       try {
         await dispatch(authActions.login(username, password)).then(() => {
           setIsFetchingData(false);
+          setPasswordValid(false);
+          setusernameValid(false);
           props.navigation.navigate('dashboard', {SearchClicked: false});
         });
       } catch (err) {
+        // In case of an error catch the error and display an alert to the user accordingly
+        if (err.message === 'Network request failed') {
+          setError('Please check your internet connection');
+          setIsFetchingData(false);
+          return;
+        }
         setError(err.message);
         setIsFetchingData(false);
       }
     }
   };
+
+  //The next 10 lines are to change the theme of the app whenever the device theme changes
+  const [theme, updateTheme] = useState();
+
+  const changeTheme = () => {
+    const mode = Appearance.getColorScheme();
+    if (mode === null) setLightMode();
+    else if (mode === 'dark') setDarkMode();
+    else setLightMode();
+    updateTheme(mode);
+  };
+
+  useEffect(changeTheme, []);
+
+  Appearance.addChangeListener(changeTheme);
 
   return (
     <View style={{...styles.screen, ...props.styles}}>
@@ -82,38 +128,36 @@ const AuthScreen = props => {
         source={Images.backgroundLogin}
         resizeMode={'cover'}
         style={styles.bckImage}>
-        <View style={styles.imageContainer}>
-          <Image source={Images.logo} style={styles.logoStyle} />
-        </View>
-        <Card style={styles.loginCard}>
-          <Text style={styles.title}>Welcome</Text>
+        <Card
+          style={{...styles.loginCard, backgroundColor: Colors.cardBackground}}>
+          <View style={styles.imageContainer}>
+            <Image source={Images.logo} style={styles.logoStyle} />
+          </View>
           <View style={styles.inputContainer}>
             <InputField
               hint="username"
               style={styles.inputField}
               value={username}
               onChangeText={handleUsername}
+              fieldEmpty={usernameEmpty}
+              field="Username"
             />
-            {!usernameEmpty ? null : (
-              <Text style={styles.warning}>Username is required!!!</Text>
-            )}
+
             <InputField
               hint="password"
               style={styles.inputField}
               isPassword
               value={password}
               onChangeText={handlePassword}
+              fieldEmpty={passwordEmpty}
+              field="Password"
             />
-            {!passwordEmpty ? null : (
-              <Text style={styles.warning}>Password is required!!!</Text>
-            )}
           </View>
           {!isFetchingData ? (
             <CustomButton
               title="Login"
-              style={styles.confirm}
               onPress={loginHandler}
-              disabled={passwordEmpty || usernameEmpty}
+              disabled={!passwordValid || !usernameValid}
             />
           ) : (
             <ActivityIndicator
@@ -134,13 +178,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: {
-    fontSize: 36,
-    marginBottom: 30,
-    color: Colors.main,
-  },
   imageContainer: {
-    justifyContent: 'center',
     marginBottom: 50,
     width: 100,
     height: 130,
@@ -157,10 +195,10 @@ const styles = StyleSheet.create({
   },
   loginCard: {
     width: '90%',
-    height: 500,
-    backgroundColor: '#fefefedd',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 50,
+    elevation: 5,
   },
   inputField: {
     width: '100%',
@@ -169,16 +207,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     justifyContent: 'center',
     width: '90%',
-  },
-  confirm: {
-    width: '40%',
-    marginTop: 45,
-    height: 45,
-  },
-  warning: {
-    fontSize: 10,
-    color: '#ff8844ee',
-    marginLeft: 15,
   },
   indicator: {
     marginTop: 45,

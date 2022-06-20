@@ -1,8 +1,3 @@
-import {
-  LOADMOREARTICLES,
-  RELOADARTICLES,
-  SEARCHFORARTICLES,
-} from '../actions/articles';
 import {LOGIN, LOGOUT} from '../actions/auth';
 const initialState = {
   token: null,
@@ -17,13 +12,9 @@ const authenticate = (state = initialState, action) => {
       };
     case LOGOUT:
       return initialState;
-    case RELOADARTICLES || SEARCHFORARTICLES || LOADMOREARTICLES:
-      return {
-        ...state,
-        token: state.token,
-      };
+    default:
+      return state;
   }
-  return initialState;
 };
 
 export default authenticate;

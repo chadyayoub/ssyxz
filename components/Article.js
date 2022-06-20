@@ -1,58 +1,49 @@
-import {
-  StyleSheet,
-  Text,
-  View,
-  ImageBackground,
-  TouchableOpacity,
-} from 'react-native';
+import {StyleSheet, Text, View, Image} from 'react-native';
 import React from 'react';
-import Images from '../assets/images/Images';
+
+import Card from './Card';
+import {Colors} from '../constants/Colors';
+
 const Article = props => {
-  const image = props.image === null ? Images.default : {uri: props.image};
+  const image = props.image === null ? null : {uri: props.image};
+
   return (
-    <TouchableOpacity activeOpacity={0.7}>
-      <View style={styles.card}>
-        <ImageBackground
-          source={image}
-          resizeMode={'cover'}
-          style={styles.bckImage}>
-          <View style={{flex: 0.4}} />
-          <View style={styles.textContainer}>
-            <View style={styles.headContainer}>
-              <Text style={styles.title}>{props.title}</Text>
-            </View>
-            <View style={styles.bodyContainer}>
-              <Text style={styles.body} numberOfLines={9}>
-                {props.body}
-              </Text>
-              <Text style={{textAlign: 'right', color: '#88888888'}}>
-                Read More
-              </Text>
-            </View>
-          </View>
-        </ImageBackground>
+    <Card style={{...styles.card, backgroundColor: Colors.cardBackground}}>
+      {image != null ? <Image source={image} style={styles.image} /> : null}
+      <View style={{flex: 0.4}} />
+      <View>
+        <View
+          style={{
+            ...styles.headContainer,
+            borderBottomColor: Colors.inputColor,
+          }}>
+          <Text style={{...styles.title, color: Colors.inputColor}}>
+            {props.title}
+          </Text>
+        </View>
+        <View style={styles.bodyContainer}>
+          <Text
+            style={{...styles.body, color: Colors.inputColor}}
+            numberOfLines={9}>
+            {props.body}
+          </Text>
+          <Text style={{textAlign: 'right', color: '#88888888'}}>
+            Read More
+          </Text>
+        </View>
       </View>
-    </TouchableOpacity>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#888',
-    height: 300,
-    margin: 10,
-    elevation: 5,
-    borderRadius: 50,
-    overflow: 'hidden',
+    marginBottom: 15,
+    margin: 5,
   },
-  bckImage: {
-    width: '100%',
-    height: '100%',
-    flexDirection: 'row',
-  },
+  image: {width: '100%', height: 250},
   headContainer: {
     marginHorizontal: 10,
-    borderBottomColor: '#ffffff66',
     borderBottomWidth: 1,
   },
   bodyContainer: {
@@ -61,15 +52,9 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
     fontSize: 20,
-    color: '#ffffffcc',
   },
   body: {
     fontSize: 16,
-    color: '#ffffffab',
-  },
-  textContainer: {
-    backgroundColor: '#333333cc',
-    flex: 0.6,
   },
 });
 

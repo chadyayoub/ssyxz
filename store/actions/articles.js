@@ -2,7 +2,7 @@ export const LOADMOREARTICLES = 'LOADMOREARTICLES';
 export const RELOADARTICLES = 'RELOADARTICLES';
 export const SEARCHFORARTICLES = 'SEARCHFORARTICLES';
 
-export const loadMoreArticles = (token, currentPage) => {
+export const loadMoreArticles = (token, currentPage, value) => {
   return async dispatch => {
     const response = await fetch(
       `http://34.245.213.76:3000/articles?page=${currentPage}`,
@@ -23,7 +23,7 @@ export const loadMoreArticles = (token, currentPage) => {
 
     if (resData.response.docs.length == 0)
       throw new Error('No more data to load');
-    dispatch({type: LOADMOREARTICLES, articles: resData.response});
+    dispatch({type: LOADMOREARTICLES, articles: resData.response, value});
   };
 };
 

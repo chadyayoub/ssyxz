@@ -1,4 +1,3 @@
-import {TabActions} from '@react-navigation/native';
 import Article from '../../models/Article';
 import {
   LOADMOREARTICLES,
@@ -38,10 +37,13 @@ const articles = (state = initialState, action) => {
           );
         }
       }
+      const filtereditems = state.articles.filter(item =>
+        item.title.includes(action.value),
+      );
       return {
         ...state,
         articles: state.articles.concat(newArticles),
-        filteredArticles: [],
+        filteredArticles: filtereditems,
         currentPage: state.currentPage + 1,
       };
     case RELOADARTICLES:
@@ -67,7 +69,7 @@ const articles = (state = initialState, action) => {
       return {
         ...state,
         articles: fetchArticles,
-        filteredArticles: [],
+        filteredArticles: fetchArticles,
         currentPage: 1,
       };
     case SEARCHFORARTICLES:
@@ -77,8 +79,9 @@ const articles = (state = initialState, action) => {
         filteredArticles: action.fileredList,
         currentPage: state.currentPage,
       };
+    default:
+      return state;
   }
-  return initialState;
 };
 
 export default articles;
